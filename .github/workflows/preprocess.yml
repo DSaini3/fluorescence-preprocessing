@@ -24,8 +24,7 @@ jobs:
         run: python preprocess.py
 
       - name: Upload processed data
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4  # ✅ updated from v3 to v4
         with:
           name: normalized-data
-          path: processed_data/normalized_data.csv
-
+          path: processed_data/
