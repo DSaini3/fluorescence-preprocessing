@@ -22,7 +22,7 @@ df_time['sample_id'] = df_time['sample_id'].astype(str).str.replace('-dup', '', 
 df = pd.merge(df_time, df_meta, on='sample_id', how='inner')
 
 # Drop rows with missing key columns
-df.dropna(subset=['sample_id', 'seconds', 'result', 'overall_re'], inplace=True)
+df.dropna(subset=['sample_id', 'seconds', 'result', 'overall_result'], inplace=True)
 
 # Convert 'result' to float (in case it's read as object)
 df['result'] = pd.to_numeric(df['result'], errors='coerce')
