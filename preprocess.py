@@ -2,36 +2,42 @@ import os
 import pandas as pd
 import numpy as np
 
-# Paths
-RAW_DATA_PATH = 'raw_data/TO_USE_CT_timeseries_long_format.csv'
+# File paths
+RAW_TIMESERIES_PATH = 'raw_data/TO USE CT_timeseries_long_format.csv'
+RAW_METADATA_PATH = 'raw_data/TO USE CT_sample_types.xlsx'
 PROCESSED_DATA_PATH = 'processed_data/normalized_data.csv'
 
-# Create processed_data directory if it doesn't exist
+# Ensure processed_data directory exists
 os.makedirs('processed_data', exist_ok=True)
 
 # Load data
-print("🔄 Loading raw data...")
-df = pd.read_csv(RAW_DATA_PATH)
+print("🔄 Loading timeseries and metadata...")
+df_time = pd.read_csv(RAW_TIMESERIES_PATH)
+df_meta = pd.read_excel(RAW_METADATA_PATH)
 
-# Basic checks
-if 'sample_id' not in df.columns or 'seconds' not in df.columns or 'result' not in df.columns:
-    raise ValueError("Missing required columns: ['sample_id', 'seconds', 'result']")
+# Remove '-dup' from sample IDs in df_time
+df_time['sample_id'] = df_time['sample_id'].astype(str).str.replace('-dup', '', regex=False)
 
-# Drop rows with missing values
-df = df.dropna(subset=['sample_id', 'seconds', 'result'])
+# Merge timeseries with metadata on sample_id
+df = pd.merge(df_time, df_meta, on='sample_id', how='inner')
 
-# Normalize 'result' column per sample_id (Min-Max normalization)
-print("⚙️ Normalizing fluorescence values per sample...")
-def min_max_normalize(group):
+# Drop rows with missing key columns
+df.dropna(subset=['sample_id', 'seconds', 'result', 'overall_re'], inplace=True)
+
+# Convert 'result' to float (in case it's read as object)
+df['result'] = pd.to_numeric(df['result'], errors='coerce')
+df.dropna(subset=['result'], inplace=True)
+
+# Normalize fluorescence per sample_id using Min-Max
+print("⚙️ Applying min-max normalization...")
+def normalize(group):
     vals = group['result']
-    norm = (vals - vals.min()) / (vals.max() - vals.min() + 1e-8)
-    group['normalized_result'] = norm
+    group['normalized_result'] = (vals - vals.min()) / (vals.max() - vals.min() + 1e-8)
     return group
 
-df = df.groupby('sample_id').apply(min_max_normalize)
+df = df.groupby('sample_id').apply(normalize).reset_index(drop=True)
 
-# Save normalized dataset
-print("💾 Saving normalized data to processed_data/normalized_data.csv")
+# Save to processed_data folder
+print("💾 Saving processed data to:", PROCESSED_DATA_PATH)
 df.to_csv(PROCESSED_DATA_PATH, index=False)
-
-print("✅ Done.")
+print("✅ Preprocessing complete.")
