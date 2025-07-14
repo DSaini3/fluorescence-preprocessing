@@ -1,10 +1,14 @@
 import pandas as pd
+import numpy as np
 import os
 
-# Create output folder if it doesn't exist
+# === SETTING GLOBAL SEED FOR REPRODUCIBILITY ===
+np.random.seed(42)
+
+# Creating output folder if it doesn't exist
 os.makedirs("processed_data", exist_ok=True)
 
-# === LOAD DATA ===
+# === LOADING DATA ===
 sample_types_path = "raw_data/TO USE CT_sample_types.xlsx"
 timeseries_path = "raw_data/TO USE CT_timeseries_long_format.csv"
 
