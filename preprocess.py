@@ -41,6 +41,18 @@ df = df[df['replicate'].isin([0, 1, 2, 3])]
 df['overall_result'] = df['overall_result'].astype(str).str.strip().str.lower()
 df = df.dropna(subset=["overall_result"])
 
+# === DEBUG: IQR Diagnostics ===
+print("\n=== DEBUG: IQR Diagnostics ===")
+sample_counts = df["sample_id"].value_counts()
+print(f"Samples with <2 timepoints: {(sample_counts < 2).sum()}")
+
+unique_counts = df.groupby("sample_id")["result"].apply(lambda x: len(np.unique(x)))
+print(f"Samples with constant result values (IQR = 0): {(unique_counts == 1).sum()}")
+
+print(f"Result column data type: {df['result'].dtype}")
+print(f"Missing values in 'result': {df['result'].isna().sum()}")
+print("===")
+
 # === FEATURE EXTRACTION ===
 def extract_features(data):
     df_sorted = data.sort_values(by=["sample_id", "mins"])
