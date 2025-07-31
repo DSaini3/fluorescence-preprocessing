@@ -18,13 +18,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pandas numpy openpyxl
+          python -m pip install --upgrade pip
+          pip install pandas numpy openpyxl scikit-learn
 
       - name: Run preprocessing
         run: python preprocess.py
 
       - name: Upload processed data
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
         with:
-          name: normalized-data
+          name: processed-data
           path: processed_data/
