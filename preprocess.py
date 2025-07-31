@@ -56,6 +56,7 @@ print("===")
 # === FEATURE EXTRACTION ===
 def extract_features(data):
     df_sorted = data.sort_values(by=["sample_id", "mins"])
+    df_sorted = df_sorted.dropna(subset=["result"])  # 🧹 Filter out NaNs before computing IQR
     
     grouped = df_sorted.groupby("sample_id").agg({
         'result': ['max', 'min', 'mean', 'std', 'median']
@@ -90,6 +91,9 @@ def extract_features(data):
     print(f"⚠️ Missing IQR values: {features['result_iqr'].isna().sum()}")
 
     return features
+
+missing_iqr_samples = features[features['result_iqr'].isna()]["sample_id"].tolist()
+print("🔍 Sample IDs with missing IQR:", missing_iqr_samples)
 
 # === TtA FEATURE ===
 def compute_tta(df, baseline_points=10, sigma_multiplier=10):
