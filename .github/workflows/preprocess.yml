@@ -25,7 +25,7 @@ jobs:
         run: python preprocess.py
 
       - name: Upload processed data
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: processed-data
           path: processed_data/
