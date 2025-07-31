@@ -40,20 +40,19 @@ df = pd.merge(timeseries_df, sample_df, on="sample_id", how="left")
 df = df[df['replicate'].isin([0, 1, 2, 3])]
 df['overall_result'] = df['overall_result'].astype(str).str.strip().str.lower()
 df = df.dropna(subset=["overall_result"])
-df["seconds"] = df["mins"] * 60
 
 # === FEATURE EXTRACTION ===
 def extract_features(data):
     df_sorted = data.sort_values(by=["sample_id", "mins"])
+    
     grouped = df_sorted.groupby("sample_id").agg({
-        'result': ['max', 'min', 'mean', 'std', 'median'],
-        'mins': ['max', 'min']
+        'result': ['max', 'min', 'mean', 'std', 'median']
     })
     grouped.columns = ['_'.join(col).strip() for col in grouped.columns.values]
     grouped.reset_index(inplace=True)
 
     def compute_iqr(x):
-        return np.percentile(x, 75) - np.percentile(x, 25)
+        return np.percentile(x, 75) - np.percentile(x, 25) if len(x) >= 2 else np.nan
     iqr = df_sorted.groupby("sample_id")["result"].apply(compute_iqr).reset_index(name="result_iqr")
 
     peak_time = df_sorted.loc[df_sorted.groupby("sample_id")["result"].idxmax()][["sample_id", "mins"]]
@@ -74,6 +73,9 @@ def extract_features(data):
     features = features.merge(iqr, on="sample_id")
     features = features.merge(labels, on="sample_id")
     features = features.merge(gender, on="sample_id")
+
+    # Print for verification
+    print(f"⚠️ Missing IQR values: {features['result_iqr'].isna().sum()}")
 
     return features
 
@@ -110,32 +112,29 @@ df_test = extract_features(rep3)
 for part in [df_train, df_val, df_test]:
     part["label"] = part["overall_result"].map({"negative": 0, "positive": 1})
 
-# === ADD TtA FEATURE ===
+# === ADD TtA FEATURE (without filling missing) ===
 tta_df = compute_tta(df)
-median_tta = tta_df["time_to_amplification"].median()
+
+# Print for verification
+print(f"⚠️ Missing TtA values: {tta_df['time_to_amplification'].isna().sum()}")
 
 df_train = df_train.merge(tta_df, on="sample_id", how="left")
 df_val = df_val.merge(tta_df, on="sample_id", how="left")
 df_test = df_test.merge(tta_df, on="sample_id", how="left")
-
-df_train["time_to_amplification"].fillna(median_tta, inplace=True)
-df_val["time_to_amplification"].fillna(median_tta, inplace=True)
-df_test["time_to_amplification"].fillna(median_tta, inplace=True)
 
 # === GENDER ONE-HOT ENCODING ===
 df_train = pd.get_dummies(df_train, columns=["gender"], drop_first=True)
 df_val = pd.get_dummies(df_val, columns=["gender"], drop_first=True)
 df_test = pd.get_dummies(df_test, columns=["gender"], drop_first=True)
 
-# === FEATURE LIST (INCLUDE GENDER COLUMNS) ===
+# === FEATURE LIST ===
 feature_cols = [
     'result_max', 'result_min', 'result_mean', 'result_median',
-    'result_std', 'result_iqr', 'mins_max', 'mins_min',
-    'time_to_peak', 'area_under_curve', 'early_mean', 'late_mean',
+    'result_std', 'result_iqr', 'time_to_peak',
+    'area_under_curve', 'early_mean', 'late_mean',
     'time_to_amplification'
 ]
 
-# Include any new one-hot gender cols
 gender_cols = [col for col in df_train.columns if col.startswith("gender_")]
 feature_cols.extend(gender_cols)
 
